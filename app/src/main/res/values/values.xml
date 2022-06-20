@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="LitterClass">
+        <item>Labels</item>
+        <item>Fishery</item>
+        <item>Transportation</item>
+        <item>Electronic</item>
+        <item>Foods</item>
+        <item>Householding</item>
+        <item>Construction</item>
+        <item>Medical</item>
+        <item>Tourism</item>
+        <item>Others</item>
+    </string-array>
+</resources>
