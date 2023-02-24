@@ -2,7 +2,6 @@
   <library name="Gradle: org.tensorflow:tensorflow-lite-task-vision:0.3.0@aar">
     <CLASSES>
       <root url="jar://$USER_HOME$/.gradle/caches/transforms-3/2d403c93497cb9284ebe0f02ca42562d/transformed/jetified-tensorflow-lite-task-vision-0.3.0/jars/classes.jar!/" />
-      <root url="file://$USER_HOME$/.gradle/caches/transforms-3/2d403c93497cb9284ebe0f02ca42562d/transformed/jetified-tensorflow-lite-task-vision-0.3.0/res" />
       <root url="file://$USER_HOME$/.gradle/caches/transforms-3/2d403c93497cb9284ebe0f02ca42562d/transformed/jetified-tensorflow-lite-task-vision-0.3.0/AndroidManifest.xml" />
     </CLASSES>
     <JAVADOC />

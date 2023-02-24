@@ -4,8 +4,17 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/LittleDetection.iml" filepath="$PROJECT_DIR$/.idea/modules/LittleDetection.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/LittleDetection.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/LittleDetection.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/LittleDetection.app.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/LittleDetection.app.androidTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/LittleDetection.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/LittleDetection.app.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/LittleDetection.app.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/LittleDetection.app.unitTest.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/lib_interpreter/LittleDetection.lib_interpreter.iml" filepath="$PROJECT_DIR$/.idea/modules/lib_interpreter/LittleDetection.lib_interpreter.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/lib_interpreter/LittleDetection.lib_interpreter.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/lib_interpreter/LittleDetection.lib_interpreter.androidTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/lib_interpreter/LittleDetection.lib_interpreter.main.iml" filepath="$PROJECT_DIR$/.idea/modules/lib_interpreter/LittleDetection.lib_interpreter.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/lib_interpreter/LittleDetection.lib_interpreter.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/lib_interpreter/LittleDetection.lib_interpreter.unitTest.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/lib_task_api/LittleDetection.lib_task_api.iml" filepath="$PROJECT_DIR$/.idea/modules/lib_task_api/LittleDetection.lib_task_api.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/lib_task_api/LittleDetection.lib_task_api.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/lib_task_api/LittleDetection.lib_task_api.androidTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/lib_task_api/LittleDetection.lib_task_api.main.iml" filepath="$PROJECT_DIR$/.idea/modules/lib_task_api/LittleDetection.lib_task_api.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/lib_task_api/LittleDetection.lib_task_api.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/lib_task_api/LittleDetection.lib_task_api.unitTest.iml" />
     </modules>
   </component>
 </project>

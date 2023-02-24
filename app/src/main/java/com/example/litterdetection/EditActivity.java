@@ -64,6 +64,8 @@ import net.gotev.uploadservice.UploadNotificationConfig;
 import net.gotev.uploadservice.UploadServiceSingleBroadcastReceiver;
 import net.gotev.uploadservice.UploadStatusDelegate;
 
+
+
 public class EditActivity extends AppCompatActivity {
 
     //elements
@@ -135,12 +137,13 @@ public class EditActivity extends AppCompatActivity {
     private int annotationNum =0;
     private JSONArray jsonlist = new JSONArray();
     private JSONObject jsonObj = new JSONObject();
-    private File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),"LitterDetection");
-    private String file_output_directory = storageDir.toString();
+    private File storageDir;
+    private String file_output_directory ;
 
     private String fileName;
+    private String oldBitmapPath;
 
-    public static final String UPLOAD_URL = "http://158.38.66.238/plastOPol/Api.php?apicall=upload";
+    public static final String UPLOAD_URL = "http://10.53.98.70/PlastOPol/Api.php?apicall=upload";
 
     private UploadServiceSingleBroadcastReceiver uploadReceiver;
 
@@ -151,6 +154,11 @@ public class EditActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit);
+
+        File externalFilesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
+        storageDir = new File(externalFilesDir, "LitterDetection");
+        file_output_directory = storageDir.toString();
+
 
         //set the elements
         imageView = findViewById(R.id.Editview);
@@ -210,87 +218,60 @@ public class EditActivity extends AppCompatActivity {
             finish();
         }
 
-        //recieve infromation from former activity
-        String uriString = getIntent().getStringExtra("imagePath");
-        Uri uri = Uri.parse(uriString);
-        fileName = uriString.substring(uriString.length()-4, uriString.length());
+        Intent intent = getIntent();
+        oldBitmapPath = intent.getStringExtra("bitmap_file_path");
 
-        Log.d("filePath", "filePath"+uriString);
+        File oldBitmap= new File(oldBitmapPath);
+        fileName = oldBitmap.getName();
 
-        // get bitmap from uri
-        if (uri != null) {
-            try {
-                if(photo==null){
-//                    // Get the dimensions of the View
-//                    int targetW = imageView.getWidth();
-//                    int targetH = imageView.getHeight();
-//
-//                    // Get the dimensions of the bitmap
-//                    BitmapFactory.Options bmOptions = new BitmapFactory.Options();
-//                    bmOptions.inJustDecodeBounds = true;
-//
-//                    photo = BitmapFactory.decodeStream(getContentResolver()
-//                            .openInputStream(uri), null, bmOptions);//需要权限android.permission.READ_EXTERNAL_STORAGE
-//
-//
-//                    //BitmapFactory.decodeFile(uri, bmOptions);
-//
-//                    int photoW = bmOptions.outWidth;
-//                    int photoH = bmOptions.outHeight;
-//
-//                    // Determine how much to scale down the image
-//                    int scaleFactor = Math.max(1, Math.min(photoW/targetW, photoH/targetH));
-//
-//                    // Decode the image file into a Bitmap sized to fill the View
-//                    bmOptions.inJustDecodeBounds = false;
-//                    bmOptions.inSampleSize = scaleFactor;
-//                    bmOptions.inPurgeable = true;
-//
-//                    Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver()
-//                            .openInputStream(uri), null, bmOptions);//需要权限android.permission.READ_EXTERNAL_STORAGE
-//
-//                    int rotation = readImageInformation(uri);
-//                    photo = rotaingImageView(rotation, BitmapFactory.decodeStream(getContentResolver().openInputStream(uri), null, bmOptions));
-//                    photoAlterBitmap = Bitmap.createBitmap(photo.getWidth(), photo.getHeight(), photo.getConfig());
+        // readImageFromPath(filePath);
 
-                    //imageView.setImageBitmap(bitmap);
+        Bitmap originalBitmap = BitmapFactory.decodeFile(oldBitmapPath);
 
-                    DisplayMetrics metrics2 = getResources().getDisplayMetrics();
-                    int ddw = metrics2.widthPixels;
-                    int ddh = metrics2.heightPixels;
+        photo =  originalBitmap.copy(Bitmap.Config.ARGB_8888, true);
 
-
-                    //BitmapFactory.Options options = new BitmapFactory().Options();//注意别写错了,options是静态内部类,需要直接使用外部类直接饮用
-                    BitmapFactory.Options options = new BitmapFactory.Options();
-                    options.inJustDecodeBounds = false;
-                    photo = BitmapFactory.decodeStream(getContentResolver()
-                            .openInputStream(uri), null, options);//需要权限android.permission.READ_EXTERNAL_STORAGE
-
-                    //计算缩放因子
-                    int heightRatio = (int) Math.ceil(options.outHeight/ddw);
-                    int widthRatio = (int) Math.ceil(options.outWidth/ddh);
-
-                    float scaleSize= 0;
-
-                    if (heightRatio > widthRatio) {
-                        options.inSampleSize = heightRatio;
-                        scaleSize = heightRatio;
-                    } else {
-                        options.inSampleSize = widthRatio;
-                        scaleSize = widthRatio;
-                    }
-
-                    options.inJustDecodeBounds = false;
-                    int rotation = readImageInformation(uri);
-                    Log.d("path is"," uri is transfered to "+ rotation);
-                    photo = rotaingImageView(rotation, BitmapFactory.decodeStream(getContentResolver().openInputStream(uri), null, options));
-                    photoAlterBitmap = Bitmap.createBitmap(photo.getWidth(), photo.getHeight(), photo.getConfig());
-
-                }
-                } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
+        int width = photo.getWidth();
+        int height = photo.getHeight();
+        if (width > height) {
+            // Crop the image to make it a square
+            int difference = width - height;
+            photo = Bitmap.createBitmap(
+                    photo,
+                    difference / 2,
+                    0,
+                    height,
+                    height
+            );
+        } else if (height > width) {
+            // Crop the image to make it a square
+            int difference = height - width;
+            photo = Bitmap.createBitmap(
+                    photo,
+                    0,
+                    difference / 2,
+                    width,
+                    width
+            );
         }
+
+        DisplayMetrics metrics2 = getResources().getDisplayMetrics();
+        int screenWidth = metrics2.widthPixels;
+        int screenHeight = metrics2.heightPixels;
+
+        // Determine the correct scale factor
+        int targetWidth = screenWidth;
+        int targetHeight = screenHeight;
+        int bitmapWidth = photo.getWidth();
+        int bitmapHeight = photo.getHeight();
+        float scaleFactor = Math.min((float) targetWidth / bitmapWidth, (float) targetHeight / bitmapHeight);
+
+        // Scale the Bitmap
+        Matrix sacleMatrix = new Matrix();
+        sacleMatrix.postScale(scaleFactor, scaleFactor);
+        photo = Bitmap.createBitmap(photo, 0, 0, bitmapWidth, bitmapHeight, sacleMatrix, true);
+
+        photoAlterBitmap = photo.copy(Bitmap.Config.ARGB_8888, true);
+
 
         canvas = new Canvas(photoAlterBitmap);
         Matrix matrix = new Matrix();
@@ -1058,46 +1039,100 @@ public class EditActivity extends AppCompatActivity {
         canvas.save();
         canvas.restore();
 
+        File folder = new File(file_output_directory);
+        if (!folder.exists()) {
+            boolean success = folder.mkdirs();
+        }
+
+
+        File file = new File(folder, fileName);
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(file);
+            photoAlterBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        try {
+            fos.close();
+//            Uri image_uri=Uri.fromFile(file);
+//            Uri json_uri=Uri.fromFile(json_file);
+            //uploadMultipart(image_uri.toString(),json_uri.toString());
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+
         jsonObj.put("AnnotationNumber", annotationNum);
         jsonObj.put("Annotation",jsonlist);
 
 
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+
+
         String FileName = fileName;
+        if (FileName.contains("jpg")) {
+            FileName = FileName.replace("jpg", "json");
+        }
 
-        String json_name = FileName + ".json";
-        File json_file = new File(file_output_directory, json_name);
+        String json_name = FileName;
+        File json_file = new File(folder, json_name);
+        FileOutputStream stream = new FileOutputStream(json_file);
+        // Write the JSON data to the file
+        stream.write("{\"key\":\"value\"}".getBytes());
+        stream.close();
+        Intent intent = new Intent();
+        intent.setClass(EditActivity.this, MainActivity.class);
+        startActivity(intent);
 
 
-//        if (!json_file.exists()){
-//
-//            if(json_file.mkdirs()){
-//                Log.d("make file","made");
-//
-//            }
-//
-//        }
+ /*       FileWriter jsonWriter=new FileWriter(json_file);
+        jsonWriter.write(jsonObj.toJSONString());
+        jsonWriter.close();*/
 
-        FileWriter jsonfile=new FileWriter(json_file);
-
-        try{
-            jsonfile.write(jsonObj.toJSONString());
+        /*try{
+            jsonWriter.write(jsonObj.toJSONString());
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
             try{
-                jsonfile.flush();
-                jsonfile.close();
+                jsonWriter.flush();
+                jsonWriter.close();
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        }
+        }*/
 
 
-        Log.d("save test","save test");
+        /*File file = new File(folder, fileName);
 
-        String file_name = FileName+".png";
-        File file = new File(file_output_directory, file_name);
+            FileOutputStream fos = null;
+            try {
+                fos = new FileOutputStream(file);
+                photoAlterBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+            } catch (FileNotFoundException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            try {
+                fos.close();
+//            Uri image_uri=Uri.fromFile(file);
+//            Uri json_uri=Uri.fromFile(json_file);
+                //uploadMultipart(image_uri.toString(),json_uri.toString());
+                Intent intent = new Intent();
+                intent.setClass(EditActivity.this, MainActivity.class);
+                startActivity(intent);
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }*/
+
+
+
+/*
+        String file_name = FileName+".jpeg";
+        File file = new File(file_output_directory, file_name);*/
 //
 //        if (!file.exists()){
 //
@@ -1109,26 +1144,7 @@ public class EditActivity extends AppCompatActivity {
 //        }
 
         Toast.makeText(getBaseContext(), "Image Saved" + file.getAbsolutePath(), Toast.LENGTH_SHORT).show();
-        FileOutputStream fos = null;
-        try {
-            fos = new FileOutputStream(file);
-            photoAlterBitmap.compress(Bitmap.CompressFormat.PNG, 50, fos);
-        } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        try {
-            fos.close();
-//            Uri image_uri=Uri.fromFile(file);
-//            Uri json_uri=Uri.fromFile(json_file);
-            //uploadMultipart(image_uri.toString(),json_uri.toString());
-            Intent intent = new Intent();
-            intent.setClass(EditActivity.this, MainActivity.class);
-            startActivity(intent);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+
 
     }
 

@@ -13,6 +13,7 @@ import android.provider.MediaStore;
 
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 
 import android.os.Bundle;
 import android.util.Log;
@@ -20,6 +21,7 @@ import android.view.WindowManager;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -57,16 +59,18 @@ public class CapturePageActivity extends AppCompatActivity {
         }
     }
 
+
     private File createImageFile() throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        String imageFileName = "IMAG_"+timeStamp;
+        String imageFileName = "IMAG_"+timeStamp + "_";
 
-        File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),"LitterDetection");
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+                //new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),"LitterDetection");
 
         File image = File.createTempFile(
                 imageFileName,  /* prefix */
-                ".png",         /* suffix */
+                ".jpg",         /* suffix */
                 storageDir      /* directory */
         );
 

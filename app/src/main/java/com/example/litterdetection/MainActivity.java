@@ -9,7 +9,9 @@ import androidx.core.content.FileProvider;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.ActivityNotFoundException;
 import android.content.ClipData;
+import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
@@ -50,6 +52,8 @@ import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity implements UploadStatusDelegate {
 
+    public File root_folder;
+
     private static final String[] PERMISSIONS = {
             Manifest.permission.CAMERA,
             Manifest.permission.INTERNET,
@@ -60,6 +64,9 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
     private static final int EDIT_CHOICE_FROM_ALBUM_REQUEST_CODE = 3; // album selection requestCode
     private static final int REQUEST_IMAGE_CAPTURE = 4;
     private static final int REQUEST_TAKE_PHOTO = 5;
+    private static final int REQUEST_OPEN_EDIT_ROOT_FOLDER = 6;
+
+
     private Uri currentPhotoUri;
     private String ImageName;
     private String currentPhotoPath;
@@ -70,7 +77,7 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
 
     private static final int pic_id = 123;
 
-    public static final String UPLOAD_URL = "http://158.38.66.238/plastOPol/Api.php?apicall=upload";
+    public static final String UPLOAD_URL = "http://10.53.98.70/PlastOPol/Api.php?apicall=upload";
 
     private UploadServiceSingleBroadcastReceiver uploadReceiver;
 
@@ -102,22 +109,15 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
             mainEdit.setOnClickListener(clickListener);
         }
 
-        createFile();// 创建目录及文件
 
-    }
+       File externalFilesDir = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS);
+        root_folder = new File(externalFilesDir, "LitterDetection");
 
-    private void createFile() {
-        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),"LitterDetection");
-
-        if (!file.exists()){
-
-            if(file.mkdirs()){
-                Toast.makeText(MainActivity.this,"Successful",Toast.LENGTH_SHORT).show();
-            }
-            else{
-                Toast.makeText(MainActivity.this,"fail",Toast.LENGTH_SHORT).show();
-            }
+        if(!root_folder.exists()){
+            root_folder.mkdir();
         }
+
+
     }
 
     private boolean checkPermissions() {
@@ -152,6 +152,26 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
         }
     }
 
+   /* public File createRootFolder() {
+        File externalFilesDir = getExternalFilesDir(null);
+        File mySubdirectory = new File(externalFilesDir);
+        if (!mySubdirectory.exists()) {
+            if (mySubdirectory.mkdirs()) {
+                Log.d("file", "file path is "+ mySubdirectory.getAbsolutePath());
+            } else {
+                // Failed to create the subdirectory
+            }
+        }
+        return mySubdirectory;
+
+        *//*File folder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "LitterDetection");
+        if (!folder.exists()) {
+            boolean success = folder.mkdirs();
+        }
+
+        return folder;*//*
+    }*/
+
     private void closeNow() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             finishAffinity();
@@ -180,8 +200,13 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
     };
 
     private void OpenCamera() {
-
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
+        }
+
+
+/*        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
         if (getApplicationContext().getPackageManager().hasSystemFeature(
                 PackageManager.FEATURE_CAMERA)) {
@@ -201,7 +226,7 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                 startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
             }
-        }
+        }*/
     }
 
     private File createImageFile() throws IOException {
@@ -209,36 +234,16 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "IMAG_" + timeStamp + "_";
-        File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),"LitterDetection");
         File image = File.createTempFile(
                 imageFileName,  /* prefix */
-                ".png",         /* suffix */
-                storageDir      /* directory */
+                ".jpg",         /* suffix */
+                root_folder      /* directory */
         );
 
         // Save a file: path for use with ACTION_VIEW intents
         currentPhotoPathCapture = image.getAbsolutePath();
         return image;
     }
-//
-//    private File createImageFile() throws IOException {
-//        // Create an image file name
-//        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-//        String imageFileName = "IMAG_"+timeStamp;
-//
-//        File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),"LitterDetection");
-//
-//        File image = File.createTempFile(
-//                imageFileName,  /* prefix */
-//                ".png",         /* suffix */
-//                storageDir      /* directory */
-//        );
-//
-//        currentPhotoPath=image.getAbsolutePath();
-//        ImageName=image.getName();
-//        Log.d("imageFile", "image File Location"+ImageName);
-//        return image;
-//    }
 
     public static Uri getImageContentUri(Context context, File imageFile) {
 
@@ -292,12 +297,37 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
     }
 
     private void editChoiceFromAlbum() {
-        // 打开系统图库的 Action，等同于: "android.intent.action.GET_CONTENT"
-        Intent choiceFromAlbumIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        choiceFromAlbumIntent.addCategory(Intent.CATEGORY_OPENABLE);
-        // 设置数据类型为图片类型
-        choiceFromAlbumIntent.setType("image/*");
-        startActivityForResult(choiceFromAlbumIntent, EDIT_CHOICE_FROM_ALBUM_REQUEST_CODE);
+
+        //Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        //intent.setType("*/*");
+        //intent.addCategory(Intent.CATEGORY_OPENABLE);
+        //startActivityForResult(intent, EDIT_CHOICE_FROM_ALBUM_REQUEST_CODE);
+
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("*/*");
+
+
+       /* Uri externalFilesDirUri = FileProvider.getUriForFile(
+                this, "com.example.litterdetection.provider", root_folder);
+        Log.d("file","open failed"+externalFilesDirUri.toString());
+        intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, externalFilesDirUri);*/
+
+        try {
+            startActivityForResult(intent, EDIT_CHOICE_FROM_ALBUM_REQUEST_CODE);
+        } catch (ActivityNotFoundException e) {
+            Log.d("file","open failed");
+            e.printStackTrace();
+        }
+
+
+    }
+
+    private void openFile(Uri directoryUri) {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, directoryUri);
+        startActivityForResult(intent, EDIT_CHOICE_FROM_ALBUM_REQUEST_CODE);
     }
 
     @Override
@@ -306,22 +336,24 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
         if (resultCode == RESULT_OK) {
             // 通过返回码判断是哪个应用返回的数据
             switch (requestCode) {
-                // album selection
                 case EDIT_CHOICE_FROM_ALBUM_REQUEST_CODE:
+                    Uri selectedFile = data.getData();
+                    String filePath = getRealPathFromUri(selectedFile);
 
-                    Uri uri = data.getData();
+                    if (filePath == null){
+                        filePath = selectedFile.getPath();
+                    }
 
-                    String absolutePath =getRealPathFromUri(this,uri);
-                    Uri mediaUri = getMediaUriFromPath(this,absolutePath);
+                    if (filePath.startsWith("/document/primary:")) {
+                        filePath = filePath.replace("/document/primary:", "/sdcard/");
+                    }
 
-                    Intent intent = new Intent();
-                    intent.setDataAndType(uri,"image/*");
-                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                    intent.putExtra("imagePath", mediaUri.toString());
-                    intent.setClass(MainActivity.this, EditActivity.class);
+                    Intent intent = new Intent(this, EditActivity.class);
+                    intent.putExtra("bitmap_file_path", filePath);
                     startActivity(intent);
-                    Log.d("chosen Uri","edited Uri is " + uri);
+
+
+                    Log.d("file", "chosen file path is " + filePath);
                     break;
                 // upload image
                 case SELECTION_CHOICE_FROM_ALBUM_REQUEST_CODE:
@@ -330,22 +362,38 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
                     if(clipData != null && clipData.getItemCount() > 0) {
                         for (int i=0; i<clipData.getItemCount(); i=i+2){
                         ClipData.Item item1 = clipData.getItemAt(i);
-                        Uri upload_uri = item1.getUri();
+                        Uri file1_uri = item1.getUri();
                         ClipData.Item item2 = clipData.getItemAt(i+1);
-                        Uri json_uri = item2.getUri();
-                        uploadMultipart(upload_uri.toString(),json_uri.toString());
+                        Uri file2_uri = item2.getUri();
+
+                        ContentResolver contentResolver = this.getContentResolver();
+                        String mimeType = contentResolver.getType(file1_uri);
+
+                        uploadMultipart(file2_uri.toString(),file2_uri.toString());
+
+                        if (! mimeType.startsWith("image/")){
+                            uploadMultipart(file2_uri.toString(),file1_uri.toString());
+                        }
+                        else{
+                            uploadMultipart(file1_uri.toString(),file2_uri.toString());
+                        }
+
                         }
                     }
 
                     break;
                 case REQUEST_TAKE_PHOTO:
-                    Intent intent2 = new Intent();
-                    intent2.putExtra("imagePath", currentPhotoPathCapture.toString());
-                    intent2.putExtra("imageName", ImageName);
-                    intent2.setClass(MainActivity.this, EditActivity.class);
-                    startActivity(intent2);
-                    Log.d("chosen Uri","capture Uri is " + currentPhotoPathCapture);
-                    Toast.makeText(getBaseContext(), "Image Saved to " + currentPhotoPathCapture, Toast.LENGTH_SHORT).show();
+                    Bundle extras = data.getExtras();
+                    Bitmap imageBitmap = (Bitmap) extras.get("data");
+                    String photoFilePath = passBitmapToEdit(imageBitmap);
+
+                    Log.d("taking pictures", "the path is " + photoFilePath);
+
+                    // Pass the file path to the next activity
+                    Intent photoIntent = new Intent(this, EditActivity.class);
+                    photoIntent.putExtra("bitmap_file_path", photoFilePath);
+                    startActivity(photoIntent);
+
                     break;
                 default:
                     break;
@@ -353,6 +401,68 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
         }
     }
 
+    private String passBitmapToEdit(Bitmap bitmap) {
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        if (width > height) {
+            // Crop the image to make it a square
+            int difference = width - height;
+            bitmap = Bitmap.createBitmap(
+                    bitmap,
+                    difference / 2,
+                    0,
+                    height,
+                    height
+            );
+        } else if (height > width) {
+            // Crop the image to make it a square
+            int difference = height - width;
+            bitmap = Bitmap.createBitmap(
+                    bitmap,
+                    0,
+                    difference / 2,
+                    width,
+                    width
+            );
+        }
+
+        // Create a file to store the bitmap
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "IMAG_"+timeStamp+".jpg";
+
+        File outputFile = new File(root_folder, imageFileName);
+        FileOutputStream out = null;
+        try {
+            out = new FileOutputStream(outputFile);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (out != null) {
+                    out.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return outputFile.getAbsolutePath();
+    }
+    private String getRealPathFromUri(Uri uri) {
+
+        String[] projection = {MediaStore.Images.Media.DATA};
+        Cursor cursor = getContentResolver().query(uri, projection, null, null, null);
+
+        if (cursor != null) {
+            int columnIndex = cursor.getColumnIndex(projection[0]);
+            cursor.moveToFirst();
+            String result = cursor.getString(columnIndex);
+            cursor.close();
+            return result;
+        }
+        return null;
+    }
     @SuppressLint("NewApi")
     private static String getRealPathFromUri(Context context, Uri uri) {
         String filePath = null;
