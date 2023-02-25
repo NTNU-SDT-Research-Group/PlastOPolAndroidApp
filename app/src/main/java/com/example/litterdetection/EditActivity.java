@@ -57,12 +57,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import net.gotev.uploadservice.MultipartUploadRequest;
-import net.gotev.uploadservice.ServerResponse;
-import net.gotev.uploadservice.UploadInfo;
-import net.gotev.uploadservice.UploadNotificationConfig;
-import net.gotev.uploadservice.UploadServiceSingleBroadcastReceiver;
-import net.gotev.uploadservice.UploadStatusDelegate;
 
 
 
@@ -143,9 +137,6 @@ public class EditActivity extends AppCompatActivity {
     private String fileName;
     private String oldBitmapPath;
 
-    public static final String UPLOAD_URL = "http://10.53.98.70/PlastOPol/Api.php?apicall=upload";
-
-    private UploadServiceSingleBroadcastReceiver uploadReceiver;
 
 
     @RequiresApi(api = Build.VERSION_CODES.Q)
@@ -155,7 +146,7 @@ public class EditActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit);
 
-        File externalFilesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
+        File externalFilesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
         storageDir = new File(externalFilesDir, "LitterDetection");
         file_output_directory = storageDir.toString();
 
@@ -1146,26 +1137,6 @@ public class EditActivity extends AppCompatActivity {
         Toast.makeText(getBaseContext(), "Image Saved" + file.getAbsolutePath(), Toast.LENGTH_SHORT).show();
 
 
-    }
-
-    private void uploadMultipart(String filePath, String jsonPath) {
-        try {
-            Log.d("file path", "Edit file path is "+filePath);
-            Log.d("file path", "Edit file path is "+jsonPath);
-            String uploadId = UUID.randomUUID().toString();
-            uploadReceiver.setUploadID(uploadId);
-
-            new MultipartUploadRequest(this, uploadId, UPLOAD_URL)
-                    .setMethod("POST")
-                    .addFileToUpload(filePath, "image")
-                    .addFileToUpload(jsonPath, "desc")
-                    .setNotificationConfig(new UploadNotificationConfig())
-                    .setMaxRetries(0)
-                    .startUpload();
-
-        } catch (Exception exc) {
-            Log.e("Upload start error", exc.getMessage(), exc);
-        }
     }
 
     @SuppressLint("Range")

@@ -81,7 +81,8 @@ dependencies {
     // CameraX View class
     implementation 'androidx.camera:camera-view:1.0.0-alpha25'
 
-    implementation 'net.gotev:uploadservice:3.5.2'
+    implementation 'net.gotev:uploadservice:4.7.0'
+
 
 
 }

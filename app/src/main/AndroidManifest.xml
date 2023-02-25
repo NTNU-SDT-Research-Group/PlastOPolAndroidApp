@@ -30,7 +30,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.LitterDetection"
         android:usesCleartextTraffic="true"
-        android:name=".Initializer">
+        android:name=".App">
 
         <activity
             android:name=".EditActivity"

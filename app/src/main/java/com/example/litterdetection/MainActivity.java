@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.documentfile.provider.DocumentFile;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -32,13 +33,9 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
-import net.gotev.uploadservice.MultipartUploadRequest;
-import net.gotev.uploadservice.ServerResponse;
-import net.gotev.uploadservice.UploadInfo;
-import net.gotev.uploadservice.UploadNotificationConfig;
-import net.gotev.uploadservice.UploadServiceSingleBroadcastReceiver;
-import net.gotev.uploadservice.UploadStatusDelegate;
+import net.gotev.uploadservice.protocols.multipart.MultipartUploadRequest;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -50,7 +47,14 @@ import java.util.List;
 
 import java.util.UUID;
 
-public class MainActivity extends AppCompatActivity implements UploadStatusDelegate {
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
+public class MainActivity extends AppCompatActivity {
 
     public File root_folder;
 
@@ -79,8 +83,6 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
 
     public static final String UPLOAD_URL = "http://10.53.98.70/PlastOPol/Api.php?apicall=upload";
 
-    private UploadServiceSingleBroadcastReceiver uploadReceiver;
-
     String currentPhotoPathCapture;
 
 
@@ -91,10 +93,6 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
-
-
-        uploadReceiver = new UploadServiceSingleBroadcastReceiver(this);
-
 
         if (checkPermissions()){
 
@@ -110,7 +108,7 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
         }
 
 
-       File externalFilesDir = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS);
+       File externalFilesDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
         root_folder = new File(externalFilesDir, "LitterDetection");
 
         if(!root_folder.exists()){
@@ -152,26 +150,6 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
         }
     }
 
-   /* public File createRootFolder() {
-        File externalFilesDir = getExternalFilesDir(null);
-        File mySubdirectory = new File(externalFilesDir);
-        if (!mySubdirectory.exists()) {
-            if (mySubdirectory.mkdirs()) {
-                Log.d("file", "file path is "+ mySubdirectory.getAbsolutePath());
-            } else {
-                // Failed to create the subdirectory
-            }
-        }
-        return mySubdirectory;
-
-        *//*File folder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "LitterDetection");
-        if (!folder.exists()) {
-            boolean success = folder.mkdirs();
-        }
-
-        return folder;*//*
-    }*/
-
     private void closeNow() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             finishAffinity();
@@ -205,28 +183,6 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
             startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
         }
 
-
-/*        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        // Ensure that there's a camera activity to handle the intent
-        if (getApplicationContext().getPackageManager().hasSystemFeature(
-                PackageManager.FEATURE_CAMERA)) {
-
-            // Create the File where the photo should go
-            File photoFile = null;
-            try {
-                photoFile = createImageFile();
-            } catch (IOException ex) {
-                // Error occurred while creating the File
-            }
-            // Continue only if the File was successfully created
-            if (photoFile != null) {
-                Uri photoURI = getImageContentUri(this, photoFile);
-                currentPhotoPathCapture = photoURI.toString();
-                Log.d("uri", "picture Uri is "+ photoURI.toString());
-                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
-            }
-        }*/
     }
 
     private File createImageFile() throws IOException {
@@ -286,12 +242,10 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
 
     private void selectionChoiceFromAlbum() {
 
-        // 打开系统图库的 Action，等同于: "android.intent.action.GET_CONTENT"
         Intent choiceFromAlbumIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         choiceFromAlbumIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
         //choiceFromAlbumIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         //choiceFromAlbumIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-        // 设置数据类型为图片类型
         choiceFromAlbumIntent.setType("*/*");
         startActivityForResult(choiceFromAlbumIntent, SELECTION_CHOICE_FROM_ALBUM_REQUEST_CODE);
     }
@@ -337,6 +291,7 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
             // 通过返回码判断是哪个应用返回的数据
             switch (requestCode) {
                 case EDIT_CHOICE_FROM_ALBUM_REQUEST_CODE:
+
                     Uri selectedFile = data.getData();
                     String filePath = getRealPathFromUri(selectedFile);
 
@@ -361,26 +316,33 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
 
                     if(clipData != null && clipData.getItemCount() > 0) {
                         for (int i=0; i<clipData.getItemCount(); i=i+2){
-                        ClipData.Item item1 = clipData.getItemAt(i);
-                        Uri file1_uri = item1.getUri();
-                        ClipData.Item item2 = clipData.getItemAt(i+1);
-                        Uri file2_uri = item2.getUri();
-
-                        ContentResolver contentResolver = this.getContentResolver();
-                        String mimeType = contentResolver.getType(file1_uri);
-
-                        uploadMultipart(file2_uri.toString(),file2_uri.toString());
-
-                        if (! mimeType.startsWith("image/")){
-                            uploadMultipart(file2_uri.toString(),file1_uri.toString());
-                        }
-                        else{
-                            uploadMultipart(file1_uri.toString(),file2_uri.toString());
-                        }
-
+                            ClipData.Item data_1 = clipData.getItemAt(i);
+                            String upload_path_1 = data_1.getUri().toString();
+                            ClipData.Item data_2 = clipData.getItemAt(i=1);
+                            String upload_path_2 = data_2.getUri().toString();
+//                            Uri item1 = clipData.getItemAt(i).getUri();
+//                            Uri upload_file = DocumentFile.fromSingleUri(this, item1).getUri();
+//                            String upload_path_1=getFilePathFromUri(this, upload_file);
+//
+//                            Uri item2 = clipData.getItemAt(i+1).getUri();
+//                            Uri json_file = DocumentFile.fromSingleUri(this, item2).getUri();
+//                            String upload_path_2=getFilePathFromUri(this, json_file);
+//
+//                            if (upload_path_1 == null){
+//                                upload_path_1=getFilePathFromDocumentUri(this, upload_file);
+//                            }
+//                            if (upload_path_2 == null){
+//                                upload_path_2=getFilePathFromDocumentUri(this, json_file);
+//                            }
+//                            if (upload_path_1 == null){
+//                                upload_path_1=upload_file.getPath();
+//                            }
+//                            if (upload_path_2 == null){
+//                                upload_path_2=json_file.getPath();
+//                            }
+                            uploadMultipart(upload_path_1,upload_path_2);
                         }
                     }
-
                     break;
                 case REQUEST_TAKE_PHOTO:
                     Bundle extras = data.getExtras();
@@ -399,6 +361,56 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
                     break;
             }
         }
+    }
+
+    private static String getFilePathFromUri(Context context, Uri uri) {
+        String filePath = null;
+        if ("content".equals(uri.getScheme())) {
+            String[] projection = { "_data" };
+            Cursor cursor = null;
+            try {
+                cursor = context.getContentResolver().query(uri, projection, null, null, null);
+                if (cursor != null && cursor.moveToFirst()) {
+                    int columnIndex = cursor.getColumnIndexOrThrow("_data");
+                    filePath = cursor.getString(columnIndex);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (cursor != null) {
+                    cursor.close();
+                }
+            }
+        } else if ("file".equals(uri.getScheme())) {
+            filePath = uri.getPath();
+        }
+        if (filePath != null) {
+            File file = new File(filePath);
+            if (!file.exists()) {
+                return null;
+            }
+        }
+        return filePath;
+    }
+
+    public static String getFilePathFromDocumentUri(Context context, Uri uri) {
+        String documentId = DocumentsContract.getDocumentId(uri);
+        String[] split = documentId.split(":");
+        String type = split[0];
+        String path = split[1];
+        Log.d("path", path);
+
+        if ("primary".equalsIgnoreCase(type)) {
+            File externalStorageRoot = Environment.getExternalStorageDirectory();
+            String externalStorageRootPath = externalStorageRoot.getAbsolutePath();
+            return externalStorageRootPath+'/'+ path;
+        }
+
+        DocumentFile documentFile = DocumentFile.fromTreeUri(context, uri);
+        if (documentFile != null) {
+            return documentFile.getUri().getPath();
+        }
+        return null;
     }
 
     private String passBitmapToEdit(Bitmap bitmap) {
@@ -463,61 +475,14 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
         }
         return null;
     }
-    @SuppressLint("NewApi")
-    private static String getRealPathFromUri(Context context, Uri uri) {
-        String filePath = null;
-        String wholeID = null;
-
-        wholeID = DocumentsContract.getDocumentId(uri);
-
-        // 使用':'分割
-        String id = wholeID.split(":")[1];
-
-        String[] projection = { MediaStore.Images.Media.DATA };
-        String selection = MediaStore.Images.Media._ID + "=?";
-        String[] selectionArgs = { id };
-
-        Cursor cursor = context.getContentResolver().query(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection,
-                selection, selectionArgs, null);
-        int columnIndex = cursor.getColumnIndex(projection[0]);
-
-        if (cursor.moveToFirst()) {
-            filePath = cursor.getString(columnIndex);
-        }
-        cursor.close();
-        return filePath;
-    }
-
-    @SuppressLint("Range")
-    public static Uri getMediaUriFromPath(Context context, String path) {
-        Uri mediaUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-        Cursor cursor = context.getContentResolver().query(mediaUri,
-                null,
-                MediaStore.Images.Media.DISPLAY_NAME + "= ?",
-                new String[] {path.substring(path.lastIndexOf("/") + 1)},
-                null);
-
-        Uri uri = null;
-        if(cursor.moveToFirst()) {
-            uri = ContentUris.withAppendedId(mediaUri,
-                    cursor.getLong(cursor.getColumnIndex(MediaStore.Images.Media._ID)));
-        }
-        cursor.close();
-        return uri;
-    }
 
     private void uploadMultipart(String filePath, String jsonPath) {
         try {
             Log.d("file path", "Main file path is "+filePath);
-            String uploadId = UUID.randomUUID().toString();
-            uploadReceiver.setUploadID(uploadId);
-
-            new MultipartUploadRequest(this, uploadId, UPLOAD_URL)
+            new MultipartUploadRequest(this, UPLOAD_URL)
                     .setMethod("POST")
                     .addFileToUpload(filePath, "image")
                     .addFileToUpload(jsonPath, "desc")
-                    .setNotificationConfig(new UploadNotificationConfig())
                     .setMaxRetries(0)
                     .startUpload();
 
@@ -528,32 +493,6 @@ public class MainActivity extends AppCompatActivity implements UploadStatusDeleg
             Toast.makeText(getBaseContext(), "Image Uploaded",Toast.LENGTH_SHORT).show();
         }
     }
-
-    @Override
-    public void onProgress(Context context, UploadInfo uploadInfo) {
-        showMessage("Progress: " +  uploadInfo.getProgressPercent());
-    }
-
-    @Override
-    public void onError(Context context, UploadInfo uploadInfo, ServerResponse serverResponse, Exception exception) {
-        showMessage("Error uploading. Server response code: " +  serverResponse.getHttpCode() + ", body: " + serverResponse.getBodyAsString());
-    }
-
-    @Override
-    public void onCompleted(Context context, UploadInfo uploadInfo, ServerResponse serverResponse) {
-        showMessage("Completed. Server response code: " +  serverResponse.getHttpCode() + ", body: " + serverResponse.getBodyAsString());
-    }
-
-    @Override
-    public void onCancelled(Context context, UploadInfo uploadInfo) {
-        showMessage("Upload cancelled");
-    }
-
-    private void showMessage(String message) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-        Log.i("Message", message);
-    }
-
 
 
 }
