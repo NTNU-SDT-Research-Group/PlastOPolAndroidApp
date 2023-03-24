@@ -1047,9 +1047,6 @@ public class EditActivity extends AppCompatActivity {
         }
         try {
             fos.close();
-//            Uri image_uri=Uri.fromFile(file);
-//            Uri json_uri=Uri.fromFile(json_file);
-            //uploadMultipart(image_uri.toString(),json_uri.toString());
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -1058,9 +1055,6 @@ public class EditActivity extends AppCompatActivity {
 
         jsonObj.put("AnnotationNumber", annotationNum);
         jsonObj.put("Annotation",jsonlist);
-
-
-
 
         String FileName = fileName;
         if (FileName.contains("jpg")) {
@@ -1073,16 +1067,10 @@ public class EditActivity extends AppCompatActivity {
         // Write the JSON data to the file
         stream.write("{\"key\":\"value\"}".getBytes());
         stream.close();
-        Intent intent = new Intent();
-        intent.setClass(EditActivity.this, MainActivity.class);
-        startActivity(intent);
 
+        FileWriter jsonWriter=new FileWriter(json_file);
 
- /*       FileWriter jsonWriter=new FileWriter(json_file);
-        jsonWriter.write(jsonObj.toJSONString());
-        jsonWriter.close();*/
-
-        /*try{
+        try{
             jsonWriter.write(jsonObj.toJSONString());
         } catch (Exception e) {
             e.printStackTrace();
@@ -1093,46 +1081,11 @@ public class EditActivity extends AppCompatActivity {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        }*/
+        }
 
-
-        /*File file = new File(folder, fileName);
-
-            FileOutputStream fos = null;
-            try {
-                fos = new FileOutputStream(file);
-                photoAlterBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
-            } catch (FileNotFoundException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            try {
-                fos.close();
-//            Uri image_uri=Uri.fromFile(file);
-//            Uri json_uri=Uri.fromFile(json_file);
-                //uploadMultipart(image_uri.toString(),json_uri.toString());
-                Intent intent = new Intent();
-                intent.setClass(EditActivity.this, MainActivity.class);
-                startActivity(intent);
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }*/
-
-
-
-/*
-        String file_name = FileName+".jpeg";
-        File file = new File(file_output_directory, file_name);*/
-//
-//        if (!file.exists()){
-//
-//            if(file.mkdirs()){
-//                Log.d("make file","made");
-//
-//            }
-//
-//        }
+        Intent intent = new Intent();
+        intent.setClass(EditActivity.this, MainActivity.class);
+        startActivity(intent);
 
         Toast.makeText(getBaseContext(), "Image Saved" + file.getAbsolutePath(), Toast.LENGTH_SHORT).show();
 

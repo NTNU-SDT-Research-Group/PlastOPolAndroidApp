@@ -26,6 +26,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -81,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int pic_id = 123;
 
-    public static final String UPLOAD_URL = "http://10.53.98.70/PlastOPol/Api.php?apicall=upload";
+    public static final String UPLOAD_URL = "http://129.241.152.251/PlastOPol/Api.php?apicall=upload";
 
     String currentPhotoPathCapture;
 
@@ -361,6 +362,64 @@ public class MainActivity extends AppCompatActivity {
                     break;
             }
         }
+    }
+
+    private static String getAbsolutePathFromUri(Context context, Uri uri) {
+        InputStream inputStream = null;
+        FileOutputStream outputStream = null;
+        File file = null;
+        try {
+            inputStream = context.getContentResolver().openInputStream(uri);
+            String fileName = getFileName(context, uri);
+            file = new File(context.getCacheDir(), fileName);
+            outputStream = new FileOutputStream(file);
+            byte[] buffer = new byte[4 * 1024]; // or other buffer size
+            int read;
+            while ((read = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, read);
+            }
+            outputStream.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (inputStream != null) {
+                    inputStream.close();
+                }
+                if (outputStream != null) {
+                    outputStream.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        if (file != null) {
+            return file.getAbsolutePath();
+        } else {
+            return null;
+        }
+    }
+
+    private static String getFileName(Context context, Uri uri) {
+        String result = null;
+        if (uri.getScheme().equals("content")) {
+            Cursor cursor = context.getContentResolver().query(uri, null, null, null, null);
+            try {
+                if (cursor != null && cursor.moveToFirst()) {
+                    result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        if (result == null) {
+            result = uri.getPath();
+            int cut = result.lastIndexOf(File.separator);
+            if (cut != -1) {
+                result = result.substring(cut + 1);
+            }
+        }
+        return result;
     }
 
     private static String getFilePathFromUri(Context context, Uri uri) {
